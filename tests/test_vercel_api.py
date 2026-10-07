@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
 import requests
+from yt_dlp.utils import DownloadError
 
 from fastapi.testclient import TestClient
 
@@ -233,6 +234,47 @@ class VercelApiTests(unittest.TestCase):
         captions.assert_called_once()
         transcribe.assert_not_called()
         self.assertEqual(result["transcript"], transcript)
+
+    def test_process_uses_youtube_captions_when_audio_exceeds_size_limit(self):
+        transcript = "Transcript from captions."
+        audio_error = HTTPException(
+            status_code=413,
+            detail="The downloaded video audio exceeds the 100 MB limit.",
+        )
+        with (
+            patch("index._download_and_chunk_audio", side_effect=audio_error),
+            patch("index._download_youtube_captions", return_value=transcript) as captions,
+            patch("index._transcribe_audio") as transcribe,
+            patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}, clear=True),
+            patch(
+                "index._openrouter_chat",
+                side_effect=["Partial summary", "Summary", "Title", "Actions", "Decisions", "Questions"],
+            ),
+        ):
+            result = process_video(
+                ProcessRequest(source="https://youtu.be/video-id", language="english")
+            )
+
+        captions.assert_called_once()
+        transcribe.assert_not_called()
+        self.assertEqual(result["transcript"], transcript)
+
+    def test_caption_listing_bot_check_error_is_explained(self):
+        downloader = MagicMock()
+        downloader.__enter__.return_value = downloader
+        downloader.extract_info.side_effect = DownloadError(
+            "Sign in to confirm you're not a bot"
+        )
+        with (
+            patch("index._youtube_downloader", return_value=downloader),
+            tempfile.TemporaryDirectory() as directory,
+            self.assertRaises(HTTPException) as error,
+        ):
+            _download_youtube_captions(
+                "https://youtu.be/video-id", Path(directory), "english"
+            )
+
+        self.assertIn("blocking caption access from this server", error.exception.detail)
 
     def test_ask_endpoint_uses_retrieved_context(self):
         request = AskRequest(question="When is launch?", transcript="Video transcript.")

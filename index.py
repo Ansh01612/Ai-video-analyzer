@@ -187,9 +187,17 @@ def _download_youtube_captions(source: str, directory: Path, language: str) -> s
         ) as downloader:
             info = downloader.extract_info(source, download=False)
     except DownloadError as exc:
+        error = str(exc).lower()
+        if "not a bot" in error or "sign in to confirm" in error:
+            detail = (
+                "YouTube is blocking caption access from this server. Try running "
+                "the app locally or use a video with publicly accessible captions."
+            )
+        else:
+            detail = "YouTube blocked audio download and caption tracks could not be listed."
         raise HTTPException(
             status_code=502,
-            detail="YouTube blocked audio download and caption tracks could not be listed.",
+            detail=detail,
         ) from exc
 
     subtitles = info.get("subtitles") or {}
@@ -441,7 +449,12 @@ def process_video(request: ProcessRequest) -> dict[str, str]:
         try:
             chunks = _download_and_chunk_audio(source, temp_path)
         except HTTPException as exc:
-            if "YouTube audio download failed" not in str(exc.detail):
+            audio_download_failed = "YouTube audio download failed" in str(exc.detail)
+            audio_exceeds_limit = (
+                exc.status_code == 413
+                and "downloaded video audio exceeds the 100 MB limit" in str(exc.detail)
+            )
+            if not audio_download_failed and not audio_exceeds_limit:
                 raise
             transcript = _download_youtube_captions(
                 source,
