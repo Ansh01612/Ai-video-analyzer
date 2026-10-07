@@ -1,0 +1,16 @@
+[project]
+name = "ai-video-assistant"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "imageio-ffmpeg>=0.6.0",
+    "langchain-openai>=0.3.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.32.0",
+    "uvicorn>=0.34.0",
+    "yt-dlp>=2024.4.9",
+]
+
+[tool.vercel]
+entrypoint = "api:app"

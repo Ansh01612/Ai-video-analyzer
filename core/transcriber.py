@@ -34,12 +34,18 @@ def transcribe_chunk_whisper(chunk_path: str) -> str:
     model = load_model()  
 
     result = model.transcribe(chunk_path, task="transcribe")  
-    return result["text"]  
+    text = result.get("text", "")
+    if isinstance(text, str):
+        return text
+    return " ".join(str(part) for part in text)
 
 
 def _send_to_sarvam(piece_path: str) -> str:
     """Send one ≤30s WAV file to Sarvam and return the English transcript."""
-    headers = {"api-subscription-key": SARVAM_API_KEY}
+    api_key = SARVAM_API_KEY
+    if not api_key:
+        raise RuntimeError("SARVAM_API_KEY is not set in the environment or .env file.")
+    headers = {"api-subscription-key": api_key}
 
     with open(piece_path, "rb") as f:
         files = {"file": (os.path.basename(piece_path), f, "audio/wav")}

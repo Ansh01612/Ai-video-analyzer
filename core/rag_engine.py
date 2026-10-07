@@ -1,14 +1,19 @@
 import os
-from langchain_mistralai import ChatMistralAI
+from pydantic import SecretStr
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from core.vector_store import build_vector_store, load_vector_store, get_retriever
 
 def get_llm():
-    return ChatMistralAI(
-        model="mistral-small-latest",
-        mistral_api_key=os.getenv("MISTRAL_API_KEY"),
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not set in the environment or .env file.")
+    return ChatOpenAI(
+        model=os.getenv("OPENROUTER_MODEL", "openrouter/free"),
+        api_key=SecretStr(api_key),
+        base_url="https://openrouter.ai/api/v1",
         temperature=0.3,
     )
 
@@ -57,7 +62,7 @@ Context from meeting transcript:
 
 def load_rag_chain():
     vector_store = load_vector_store()
-    retriver = get_retriever()
+    retriver = get_retriever(vector_store)
 
     llm = get_llm()
     prompt = ChatPromptTemplate.from_messages([

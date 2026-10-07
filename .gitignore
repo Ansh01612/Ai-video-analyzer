@@ -3,6 +3,7 @@
 !.env.example
 .venv/
 .venv312/
+.vercel/
 __pycache__/
 *.py[cod]
 downloades/

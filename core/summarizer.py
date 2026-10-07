@@ -1,13 +1,21 @@
-from langchain_mistralai import ChatMistralAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-
 import os 
+from pydantic import SecretStr
 
-def get_llm():
-    return ChatMistralAI(model = "mistral-small-latest", mistral_api_key = os.getenv("MISTRAL_API_KEY"),temperature=0.3)
+def get_llm() -> ChatOpenAI:
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not set in the environment or .env file.")
+    return ChatOpenAI(
+        model=os.getenv("OPENROUTER_MODEL", "openrouter/free"),
+        api_key=SecretStr(api_key),
+        base_url="https://openrouter.ai/api/v1",
+        temperature=0.3,
+    )
 
 
 def split_transcript(transcript: str) -> list:
@@ -73,7 +81,3 @@ def generate_title(transcipt : str) -> str:
     )
 
     return title_chain.invoke(transcipt[:2000])
-
-
-
-

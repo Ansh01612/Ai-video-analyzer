@@ -1,14 +1,23 @@
 #Actionableitems , decision , questions 
 
-from langchain_mistralai import ChatMistralAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 import os 
+from pydantic import SecretStr
 
 
 def get_llm():
-    return ChatMistralAI(model = "mistral-small-latest", mistral_api_key = os.getenv("MISTRAL_API_KEY"),temperature=0.2)
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not set in the environment or .env file.")
+    return ChatOpenAI(
+        model=os.getenv("OPENROUTER_MODEL", "openrouter/free"),
+        api_key=SecretStr(api_key),
+        base_url="https://openrouter.ai/api/v1",
+        temperature=0.2,
+    )
 
 
 
