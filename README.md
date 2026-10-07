@@ -107,9 +107,10 @@ deployed server.
 ### Vercel deployment
 
 The repository is configured to deploy both the HTML page and FastAPI backend
-as one Vercel project. Vercel uses `index:app` as the Python entrypoint. In the
-Vercel project settings, add these Environment Variables for Production (and
-Preview if needed), then redeploy:
+as one Vercel project. The Python app is `index:app`; `api/[...path].py`
+forwards `/api/*` requests to it, and `vercel.json` allows up to 300 seconds
+for processing. In the Vercel project settings, add these Environment
+Variables for Production (and Preview if needed), then redeploy:
 
 - `OPENROUTER_API_KEY` — title, summary, action items, decisions, open
   questions, and RAG answers.
@@ -145,6 +146,8 @@ The following environment variables are supported:
 .
 ├── app.py                 # Streamlit web application
 ├── index.py               # FastAPI backend for Vercel and local HTML UI
+├── api/
+│   └── [...path].py       # Vercel API route forwarding
 ├── index.html             # HTML frontend connected to /api/process and /api/ask
 ├── main.py                # Command-line analysis and RAG chat
 ├── pyproject.toml         # Vercel Python entrypoint and lightweight dependencies
