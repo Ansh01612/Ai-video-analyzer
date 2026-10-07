@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+.venv/
+.venv312/
+__pycache__/
+*.py[cod]
+downloades/
+downloads/
+vector_db/
+*.wav
+*.mp3
+*.mp4
