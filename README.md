@@ -16,7 +16,7 @@ generation (RAG).
   OpenRouter.
 - Build a local Chroma vector store and ask questions about the transcript.
 - Use the Streamlit interface (`app.py`), command-line pipeline (`main.py`), or
-  the HTML frontend and FastAPI backend (`index.html`, `api.py`).
+  the HTML frontend and FastAPI backend (`index.html`, `api/index.py`).
 
 ## Requirements
 
@@ -145,7 +145,8 @@ The following environment variables are supported:
 ```text
 .
 ├── app.py                 # Streamlit web application
-├── api.py                 # FastAPI backend for Vercel and local HTML UI
+├── api/
+│   └── index.py           # FastAPI backend for Vercel and local HTML UI
 ├── index.html             # HTML frontend connected to /api/process and /api/ask
 ├── main.py                # Command-line analysis and RAG chat
 ├── pyproject.toml         # Vercel Python entrypoint and lightweight dependencies
