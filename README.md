@@ -100,6 +100,17 @@ progress rather than invoking the Python pipeline. Its `/process` and `/ask`
 requests require a compatible backend; this project does not currently expose
 those HTTP endpoints.
 
+### Vercel deployment
+
+The static HTML frontend is deployed at
+<https://ai-video-analyzer-4454.vercel.app>. The Vercel project is connected to
+this GitHub repository's `main` branch, so future pushes trigger deployments.
+Vercel serves `index.html` from the repository root without a build command.
+
+This is the frontend demo only. The Python/Streamlit pipeline is not hosted by
+this static deployment, and the page will continue to show demo data until a
+compatible backend is deployed and `API_URL` is configured.
+
 ## Configuration
 
 The following environment variables are supported:
