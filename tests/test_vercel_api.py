@@ -9,7 +9,7 @@ import requests
 
 from fastapi.testclient import TestClient
 
-from api.index import (
+from index import (
     AskRequest,
     ProcessRequest,
     app,
@@ -43,8 +43,8 @@ class VercelApiTests(unittest.TestCase):
         http_error = requests.HTTPError(response=response)
 
         with (
-            patch("api.index._required_key", return_value="test-key"),
-            patch("api.index.requests.post") as post,
+            patch("index._required_key", return_value="test-key"),
+            patch("index.requests.post") as post,
         ):
             post.return_value.raise_for_status.side_effect = http_error
             with self.assertRaises(HTTPException) as error:
@@ -59,8 +59,8 @@ class VercelApiTests(unittest.TestCase):
         response._content = b'{"choices":[{"message":{"content":"OK"}}]}'
 
         with (
-            patch("api.index._required_key", return_value="test-key"),
-            patch("api.index.requests.post", return_value=response) as post,
+            patch("index._required_key", return_value="test-key"),
+            patch("index.requests.post", return_value=response) as post,
         ):
             result = _openrouter_chat("system", "user")
 
@@ -84,7 +84,7 @@ class VercelApiTests(unittest.TestCase):
             audio_path.write_bytes(b"test")
             with (
                 patch.dict(os.environ, {"SARVAM_API_KEY": "test-key"}),
-                patch("api.index.requests.post", return_value=response),
+                patch("index.requests.post", return_value=response),
                 self.assertRaises(HTTPException) as error,
             ):
                 _transcribe_audio([audio_path], "english")
@@ -144,11 +144,11 @@ class VercelApiTests(unittest.TestCase):
     def test_process_endpoint_returns_frontend_result_shape(self):
         transcript = "The launch is planned for September after QA."
         with (
-            patch("api.index._download_and_chunk_audio", return_value=[]) as download,
-            patch("api.index._transcribe_audio", return_value=transcript),
-            patch("api.index._required_key", return_value="test-key"),
+            patch("index._download_and_chunk_audio", return_value=[]) as download,
+            patch("index._transcribe_audio", return_value=transcript),
+            patch("index._required_key", return_value="test-key"),
             patch(
-                "api.index._openrouter_chat",
+                "index._openrouter_chat",
                 side_effect=["Partial summary", "Summary", "Title", "Actions", "Decisions", "Questions"],
             ),
         ):
@@ -177,12 +177,12 @@ class VercelApiTests(unittest.TestCase):
             detail="YouTube audio download failed: HTTP Error 403",
         )
         with (
-            patch("api.index._download_and_chunk_audio", side_effect=audio_error),
-            patch("api.index._download_youtube_captions", return_value=transcript) as captions,
-            patch("api.index._transcribe_audio") as transcribe,
+            patch("index._download_and_chunk_audio", side_effect=audio_error),
+            patch("index._download_youtube_captions", return_value=transcript) as captions,
+            patch("index._transcribe_audio") as transcribe,
             patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}, clear=True),
             patch(
-                "api.index._openrouter_chat",
+                "index._openrouter_chat",
                 side_effect=["Partial summary", "Summary", "Title", "Actions", "Decisions", "Questions"],
             ),
         ):
@@ -197,8 +197,8 @@ class VercelApiTests(unittest.TestCase):
     def test_ask_endpoint_uses_retrieved_context(self):
         request = AskRequest(question="When is launch?", transcript="Video transcript.")
         with (
-            patch("api.index._retrieve_context", return_value="Launch is scheduled for September.") as retrieve,
-            patch("api.index._openrouter_chat", return_value="September.") as chat,
+            patch("index._retrieve_context", return_value="Launch is scheduled for September.") as retrieve,
+            patch("index._openrouter_chat", return_value="September.") as chat,
         ):
             result = ask_question(request)
 
@@ -209,8 +209,8 @@ class VercelApiTests(unittest.TestCase):
     def test_ask_endpoint_does_not_call_model_without_relevant_context(self):
         request = AskRequest(question="Who owns quantum physics?", transcript="A planning meeting.")
         with (
-            patch("api.index._retrieve_context", return_value=""),
-            patch("api.index._openrouter_chat") as chat,
+            patch("index._retrieve_context", return_value=""),
+            patch("index._openrouter_chat") as chat,
         ):
             result = ask_question(request)
 

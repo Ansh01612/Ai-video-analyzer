@@ -22,7 +22,7 @@ from yt_dlp.utils import DownloadError
 
 load_dotenv()
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent
 SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")

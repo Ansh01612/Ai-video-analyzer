@@ -16,7 +16,7 @@ generation (RAG).
   OpenRouter.
 - Build a local Chroma vector store and ask questions about the transcript.
 - Use the Streamlit interface (`app.py`), command-line pipeline (`main.py`), or
-  the HTML frontend and FastAPI backend (`index.html`, `api/index.py`).
+  the HTML frontend and FastAPI backend (`index.html`, `index.py`).
 
 ## Requirements
 
@@ -95,7 +95,7 @@ Install the project dependencies, then start the FastAPI application:
 
 ```powershell
 python -m pip install -r Requirements.txt
-python -m uvicorn api:app --host 127.0.0.1 --port 8000
+python -m uvicorn index:app --host 127.0.0.1 --port 8000
 ```
 
 Open <http://127.0.0.1:8000>. The page calls `/api/process` and `/api/ask` on the
@@ -107,10 +107,9 @@ deployed server.
 ### Vercel deployment
 
 The repository is configured to deploy both the HTML page and FastAPI backend
-as one Vercel project. Vercel uses `api:app` as the Python entrypoint and
-`vercel.json` allows up to 300 seconds for video processing. In the Vercel
-project settings, add these Environment Variables for Production (and Preview
-if needed), then redeploy:
+as one Vercel project. Vercel uses `index:app` as the Python entrypoint. In the
+Vercel project settings, add these Environment Variables for Production (and
+Preview if needed), then redeploy:
 
 - `OPENROUTER_API_KEY` — title, summary, action items, decisions, open
   questions, and RAG answers.
@@ -145,12 +144,10 @@ The following environment variables are supported:
 ```text
 .
 ├── app.py                 # Streamlit web application
-├── api/
-│   └── index.py           # FastAPI backend for Vercel and local HTML UI
+├── index.py               # FastAPI backend for Vercel and local HTML UI
 ├── index.html             # HTML frontend connected to /api/process and /api/ask
 ├── main.py                # Command-line analysis and RAG chat
 ├── pyproject.toml         # Vercel Python entrypoint and lightweight dependencies
-├── vercel.json            # Vercel function duration configuration
 ├── Requirements.txt       # Python dependencies
 ├── core/
 │   ├── extractor.py       # Action items, decisions, and questions
