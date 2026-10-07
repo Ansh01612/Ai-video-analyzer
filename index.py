@@ -45,6 +45,10 @@ class ProcessRequest(BaseModel):
     language: Literal["english", "hinglish"] = "english"
 
 
+class TranscriptRequest(BaseModel):
+    transcript: str = Field(min_length=1, max_length=250_000)
+
+
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     transcript: str = Field(min_length=1, max_length=250_000)
@@ -464,6 +468,19 @@ def process_video(request: ProcessRequest) -> dict[str, str]:
         else:
             transcript = _transcribe_audio(chunks, request.language)
 
+    return _analyze_transcript(transcript)
+
+
+@app.post("/api/analyze-transcript")
+def analyze_transcript(request: TranscriptRequest) -> dict[str, str]:
+    transcript = request.transcript.strip()
+    if not transcript:
+        raise HTTPException(status_code=422, detail="Paste a transcript to analyze.")
+    _required_key("OPENROUTER_API_KEY")
+    return _analyze_transcript(transcript)
+
+
+def _analyze_transcript(transcript: str) -> dict[str, str]:
     summary_chunks = _transcript_chunks(transcript, size=3000, overlap=200)
     partial_summaries = [
         _openrouter_chat(

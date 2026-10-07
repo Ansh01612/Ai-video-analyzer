@@ -98,11 +98,12 @@ python -m pip install -r Requirements.txt
 python -m uvicorn index:app --host 127.0.0.1 --port 8000
 ```
 
-Open <http://127.0.0.1:8000>. The page calls `/api/process` and `/api/ask` on the
-same FastAPI application. Set `OPENROUTER_API_KEY` and `SARVAM_API_KEY` in the
-environment (or a root `.env` file) before analyzing a video. This API accepts
-YouTube URLs; a local path on a visitor's computer is not accessible to a
-deployed server.
+Open <http://127.0.0.1:8000>. The page calls `/api/process`, `/api/analyze-transcript`,
+and `/api/ask` on the same FastAPI application. Set `OPENROUTER_API_KEY` and
+`SARVAM_API_KEY` in the environment (or a root `.env` file) before analyzing a
+video. If YouTube blocks the server from accessing a video, paste its transcript
+in the alternate input. A local path on a visitor's computer is not accessible
+to a deployed server.
 
 ### Vercel deployment
 
@@ -123,10 +124,11 @@ then deploy with `vercel --prod`. Do not put API keys in the HTML or commit them
 The existing frontend URL is <https://ai-video-analyzer-4454.vercel.app>.
 
 The Vercel API converts YouTube audio into short segments for Sarvam, then
-returns analysis to the page. Chat requests send the active transcript to the
-API, which retrieves relevant transcript passages for OpenRouter; no server-side
-session or vector database is required. Long downloads or provider calls can
-still exceed Vercel's function duration limit.
+returns analysis to the page; when YouTube access is blocked, the page can send
+a pasted transcript to `/api/analyze-transcript` instead. Chat requests send the
+active transcript to the API, which retrieves relevant transcript passages for
+OpenRouter; no server-side session or vector database is required. Long
+downloads or provider calls can still exceed Vercel's function duration limit.
 
 ## Configuration
 

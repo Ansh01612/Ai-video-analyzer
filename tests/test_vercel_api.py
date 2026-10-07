@@ -211,6 +211,44 @@ class VercelApiTests(unittest.TestCase):
         )
         self.assertEqual(result["transcript"], transcript)
 
+    def test_analyze_transcript_endpoint_returns_frontend_result_shape(self):
+        transcript = "The launch is planned for September after QA."
+        with (
+            patch("index._required_key", return_value="test-key"),
+            patch(
+                "index._openrouter_chat",
+                side_effect=["Partial summary", "Summary", "Title", "Actions", "Decisions", "Questions"],
+            ),
+        ):
+            response = TestClient(app).post(
+                "/api/analyze-transcript",
+                json={"transcript": f"  {transcript}  "},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            set(response.json()),
+            {
+                "title",
+                "summary",
+                "action_items",
+                "key_decisions",
+                "open_questions",
+                "transcript",
+            },
+        )
+        self.assertEqual(response.json()["transcript"], transcript)
+
+    def test_analyze_transcript_endpoint_rejects_blank_text(self):
+        with patch("index._required_key", return_value="test-key"):
+            response = TestClient(app).post(
+                "/api/analyze-transcript",
+                json={"transcript": "  \n  "},
+            )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"], "Paste a transcript to analyze.")
+
     def test_process_uses_youtube_captions_if_audio_download_is_blocked(self):
         transcript = "The video transcript from YouTube captions."
         audio_error = HTTPException(

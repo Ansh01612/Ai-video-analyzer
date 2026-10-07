@@ -27,8 +27,13 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:6px 0 
 .box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 20px 50px -25px var(--glow)}
 .in{max-width:760px;margin:26px auto 0;text-align:left}
 .row{display:flex;gap:10px;flex-wrap:wrap}
-.row input{flex:1;min-width:200px;background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:13px 14px;font:inherit;outline:none}
-.row input:focus{border-color:var(--a);box-shadow:0 0 0 3px var(--glow)}
+.row input,.fallback textarea{flex:1;min-width:200px;background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:13px 14px;font:inherit;outline:none}
+.row input:focus,.fallback textarea:focus{border-color:var(--a);box-shadow:0 0 0 3px var(--glow)}
+.fallback{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.fallback summary{color:var(--mut);cursor:pointer}
+.fallback textarea{display:block;width:100%;min-height:150px;margin-top:12px;resize:vertical}
+.fallback .row{align-items:center;margin-top:10px}
+.fallback .hint{color:var(--mut);font-size:12px}
 .btn{background:linear-gradient(135deg,var(--a),#8f6bff);color:#fff;border:0;border-radius:12px;padding:13px 22px;font:600 15px Inter,sans-serif;cursor:pointer}
 .btn:disabled{opacity:.6;cursor:wait}
 .opts{display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--mut);font-size:13px;flex-wrap:wrap}
@@ -69,11 +74,16 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:6px 0 
 
 <section class="hero">
 <h1>Turn any video into <span>clear answers</span></h1>
-<p>Paste a YouTube link. Get a transcript, summary, action items, decisions and a chat that can answer questions about the video. If audio is blocked, available captions are used instead.</p>
+<p>Paste a YouTube link or transcript. Get a summary, action items, decisions and a chat that can answer questions about the video. If YouTube blocks this server, paste the transcript instead.</p>
 <div class="box in">
 <div class="row"><input id="src" type="url" placeholder="https://www.youtube.com/watch?v=..."><button class="btn" id="go">Analyze</button></div>
 <div class="opts">Language
 <div class="seg" id="lang"><button class="on" data-v="english">English</button><button data-v="hinglish">Hinglish</button></div></div>
+<details class="fallback">
+<summary>YouTube blocked? Paste a transcript instead</summary>
+<textarea id="manualTranscript" maxlength="250000" placeholder="Paste the video transcript here..."></textarea>
+<div class="row"><button class="btn" id="analyzeTranscript">Analyze transcript</button><span class="hint">Maximum 250,000 characters.</span></div>
+</details>
 <div class="steps" id="steps"></div>
 <div id="error" role="alert"></div>
 </div>
@@ -99,7 +109,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:6px 0 
 const API_URL = "/api";
 const $ = s => document.querySelector(s);
 let lang="english",theme=null,activeTranscript="";
-const names=["Vercel backend analysis"];
+const names=["Video analysis"];
 $("#steps").innerHTML=names.map(n=>`<div class="step">○ ${n}</div>`).join("");
 const tabs=[["summary","Summary"],["actions","Action items"],["decisions","Decisions"],["questions","Questions"],["transcript","Transcript"]];
 $("#tabs").innerHTML=tabs.map((t,i)=>`<button data-t="${t[0]}" class="${i?"":"on"}">${t[1]}</button>`).join("");
@@ -108,20 +118,27 @@ document.querySelectorAll(".tabs button,.pane").forEach(x=>x.classList.remove("o
 $("#lang").onclick=e=>{if(!e.target.dataset.v)return;lang=e.target.dataset.v;
 document.querySelectorAll("#lang button").forEach(b=>b.classList.toggle("on",b===e.target))};
 $("#theme").onclick=()=>{theme=theme==="dark"?"light":"dark";document.documentElement.dataset.theme=theme};
-$("#go").onclick=async()=>{
-const src=$("#src").value.trim();if(!src){$("#src").focus();return}
-const btn=$("#go");btn.disabled=true;btn.textContent="Working…";
+async function submitAnalysis(endpoint,payload,button,progress){
+const buttons=[$("#go"),$("#analyzeTranscript")];
+buttons.forEach(b=>b.disabled=true);button.textContent="Working…";
 $("#error").style.display="none";$("#error").textContent="";
 const st=$("#steps");st.style.display="flex";const els=[...st.children];
 els.forEach((e,i)=>{e.className="step";e.textContent="○ "+names[i]});
-els[0].className="step run";els[0].textContent="◔ Sending video to backend…";
+els[0].className="step run";els[0].textContent="◔ "+progress;
 try{
-const response=await fetch(API_URL+"/process",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source:src,language:lang})});
+const response=await fetch(API_URL+endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
 const data=await response.json();
 if(!response.ok)throw new Error(data.detail||"Video analysis failed.");
 render(data);els[0].className="step done";els[0].textContent="✓ Analysis complete";
 }catch(error){els[0].className="step";els[0].textContent="Analysis failed";$("#error").textContent=error.message||"Could not reach the backend.";$("#error").style.display="block";}
-finally{btn.disabled=false;btn.textContent="Analyze"}};
+finally{buttons.forEach(b=>b.disabled=false);button.textContent=button===buttons[0]?"Analyze":"Analyze transcript"}}
+$("#go").onclick=()=>{
+const src=$("#src").value.trim();if(!src){$("#src").focus();return}
+submitAnalysis("/process",{source:src,language:lang},$("#go"),"Sending video to backend…")};
+$("#analyzeTranscript").onclick=()=>{
+const transcript=$("#manualTranscript").value.trim();
+if(!transcript){$("#manualTranscript").focus();$("#error").textContent="Paste a transcript to analyze." ;$("#error").style.display="block";return}
+submitAnalysis("/analyze-transcript",{transcript},$("#analyzeTranscript"),"Analyzing transcript…")};
 const li=a=>(Array.isArray(a)?a:String(a).split("\n").filter(Boolean)).map(x=>`<li>${esc(x.replace(/^[-•*\d.\s]+/,""))}</li>`).join("");
 const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 function render(d){activeTranscript=d.transcript;$("#res").style.display="block";$("#title").textContent=d.title;
