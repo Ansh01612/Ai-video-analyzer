@@ -2,7 +2,7 @@ import unittest
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
 import requests
@@ -13,6 +13,7 @@ from index import (
     AskRequest,
     ProcessRequest,
     app,
+    _download_youtube_captions,
     _retrieve_context,
     _validated_youtube_url,
     _openrouter_chat,
@@ -36,6 +37,45 @@ class VercelApiTests(unittest.TestCase):
             _parse_webvtt(content),
             "Hello & welcome. Next important point.",
         )
+
+    def test_caption_fallback_uses_android_vr_client_for_listing_and_download(self):
+        video_url = "https://youtu.be/video-id"
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_downloader = MagicMock()
+            metadata_downloader.__enter__.return_value = metadata_downloader
+            metadata_downloader.extract_info.return_value = {
+                "subtitles": {"en": [{"ext": "vtt"}]},
+                "automatic_captions": {},
+            }
+
+            caption_downloader = MagicMock()
+            caption_downloader.__enter__.return_value = caption_downloader
+
+            def write_caption_file(urls):
+                self.assertEqual(urls, [video_url])
+                (Path(directory) / "captions.en.vtt").write_text(
+                    "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nCaption text.\n",
+                    encoding="utf-8",
+                )
+                return 0
+
+            caption_downloader.download.side_effect = write_caption_file
+
+            with patch(
+                "index._youtube_downloader",
+                side_effect=[metadata_downloader, caption_downloader],
+            ) as create_downloader:
+                transcript = _download_youtube_captions(
+                    video_url, Path(directory), "english"
+                )
+
+        self.assertEqual(transcript, "Caption text.")
+        self.assertEqual(create_downloader.call_count, 2)
+        for call in create_downloader.call_args_list:
+            self.assertEqual(
+                call.args[0]["extractor_args"]["youtube"]["player_client"],
+                ["android_vr"],
+            )
 
     def test_openrouter_rate_limit_returns_actionable_message(self):
         response = requests.Response()

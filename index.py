@@ -182,6 +182,7 @@ def _download_youtube_captions(source: str, directory: Path, language: str) -> s
                 "noplaylist": True,
                 "skip_download": True,
                 "js_runtimes": {"node": {}},
+                "extractor_args": {"youtube": {"player_client": ["android_vr"]}},
             }
         ) as downloader:
             info = downloader.extract_info(source, download=False)
@@ -224,6 +225,7 @@ def _download_youtube_captions(source: str, directory: Path, language: str) -> s
                 "subtitlesformat": "vtt/best",
                 "noprogress": True,
                 "js_runtimes": {"node": {}},
+                "extractor_args": {"youtube": {"player_client": ["android_vr"]}},
             }
         ) as downloader:
             downloader.download([source])
